@@ -3,18 +3,29 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/opentracing/opentracing-go"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(`<a href="/home"> Click here to start a request </a>`))
+func startUpRest() {
+	addr := fmt.Sprintf(":%d", *port)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", indexHandler)
+	mux.HandleFunc("/home", homeHandler)
+	mux.HandleFunc("/async", serviceHandler)
+	mux.HandleFunc("/service", serviceHandler)
+	mux.HandleFunc("/db", dbHandler)
+	fmt.Printf("Go to http://localhost:%d/home to start a request!\n", *port)
+	log.Fatal(http.ListenAndServe(addr, mux))
 }
+
+func indexHandler(w http.ResponseWriter, _ *http.Request) {
+	_, _ = w.Write([]byte(`<a href="/home"> Click here to start a request </a>`))
+}
+
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Request started"))
+	_, _ = w.Write([]byte("Request started"))
 	sp := opentracing.StartSpan("GET /home") // Start a new root span.
 	defer sp.Finish()
 
@@ -45,7 +56,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s: Synchronous call failed (%v)", r.URL.Path, err)
 		return
 	}
-	w.Write([]byte("... done!"))
+	_, _ = w.Write([]byte("... done!"))
 }
 
 func serviceHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +82,7 @@ func serviceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := http.DefaultClient.Do(dbReq); err != nil {
-		sp.LogEventWithPayload("db request error", err)
+		sp.LogKV("db request error", err)
 	}
 }
 
@@ -81,7 +92,7 @@ func dbHandler(w http.ResponseWriter, r *http.Request) {
 	spanCtx, err := opentracing.GlobalTracer().Extract(opentracing.TextMap,
 		opentracing.HTTPHeadersCarrier(r.Header))
 	if err != nil {
-		log.Println("%s: Could not join trace (%v)", r.URL.Path, err)
+		log.Printf("%s: Could not join trace (%v)", r.URL.Path, err)
 		return
 	}
 	if err == nil {
@@ -91,8 +102,4 @@ func dbHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sp.Finish()
 	sleepMilli(25)
-}
-
-func sleepMilli(min int) {
-	time.Sleep(time.Millisecond * time.Duration(min+rand.Intn(100)))
 }
