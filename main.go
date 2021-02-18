@@ -12,6 +12,10 @@ import (
 )
 
 var (
+	globalTracer opentracing.Tracer
+)
+
+var (
 	port = flag.Int("port", 8080, "Example app port.")
 )
 
@@ -62,7 +66,9 @@ func main() {
 		defer closer.Close()
 	}
 	opentracing.SetGlobalTracer(tracer)
+	globalTracer = tracer
 
 	// start up rest server
-	startUpRest()
+	// startUpRest()
+	startUpGRPC()
 }
