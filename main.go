@@ -71,5 +71,6 @@ func main() {
 	// start up rest server
 	// startUpRest()
 	// startUpGRPC()
-	startUpGraphQL()
+	// startUpGraphQL()
+	startUpWebsocket()
 }
