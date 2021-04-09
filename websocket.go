@@ -86,19 +86,6 @@ func startUpWebsocket() {
 	}()
 
 	http.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
-		// extract span
-		var sp opentracing.Span
-		spCtx, err := opentracing.GlobalTracer().Extract(
-			opentracing.TextMap,
-			opentracing.HTTPHeadersCarrier(r.Header),
-		)
-		if err == nil {
-			sp = opentracing.StartSpan(fmt.Sprintf("received: %d", time.Now().UnixNano()), opentracing.ChildOf(spCtx))
-		} else {
-			sp = opentracing.StartSpan(fmt.Sprintf("received: %d", time.Now().UnixNano()))
-		}
-		defer sp.Finish()
-
 		upgrader := &websocket.Upgrader{
 			// skip cross domain check
 			CheckOrigin:     func(r *http.Request) bool { return true },
@@ -121,6 +108,20 @@ func startUpWebsocket() {
 				break
 			}
 			log.Printf("receive: %s\n", msg)
+
+			// extract span
+			var sp opentracing.Span
+			spCtx, err := opentracing.GlobalTracer().Extract(
+				opentracing.TextMap,
+				opentracing.HTTPHeadersCarrier(r.Header),
+			)
+			if err == nil {
+				sp = opentracing.StartSpan(fmt.Sprintf("received: %d", time.Now().UnixNano()), opentracing.ChildOf(spCtx))
+			} else {
+				sp = opentracing.StartSpan(fmt.Sprintf("received: %d", time.Now().UnixNano()))
+			}
+			defer sp.Finish()
+
 			err = c.WriteMessage(mtype, msg)
 			if err != nil {
 				log.Println("write:", err)

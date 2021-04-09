@@ -53,13 +53,24 @@ func startUpGRPC() {
 		}
 		defer conn.Close()
 		grpcClient := NewEchoServiceClient(conn)
-		resp, err := grpcClient.Echo(context.Background(), &HiRequest{
+
+		// resp 1
+		resp1, err := grpcClient.Echo(context.Background(), &HiRequest{
 			Message: "aaa",
 		})
 		if err != nil {
 			log.Fatalf("echo err: %+v", err)
 		}
-		log.Printf("resp: %+v \n", resp)
+		log.Printf("resp: %+v \n", resp1)
+
+		// resp 2
+		resp2, err := grpcClient.Echo(context.Background(), &HiRequest{
+			Message: "bbb",
+		})
+		if err != nil {
+			log.Fatalf("echo err: %+v", err)
+		}
+		log.Printf("resp: %+v \n", resp2)
 	}()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
